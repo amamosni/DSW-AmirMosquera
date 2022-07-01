@@ -1,0 +1,419 @@
+from audioop import reverse
+from binance import Client
+import pandas as pd
+import datetime
+import calendar
+import random
+from time import sleep
+from binance.helpers import round_step_size
+from _logger import logger
+from datetime import timezone, datetime
+import requests
+
+api_key = 'deSlD2iXg7wlFbF9RvafSfmpee7LHiy7wbvWSHWtmpJVkhfHqijORmMiGevxQNA3'
+api_secret = 'MgK4n1Dhzt1HNL5BvOsxOE8u0EtURUYXSUG5B4RsJ8ghK7jABB7XSJivr3RyDt6t'
+
+client = Client(api_key,api_secret,testnet=False)
+
+def prueba1():
+    #To Get The Balances For The Futures Wallet
+    print(client.futures_account_balance())
+    acc_balance = client.futures_account_balance()
+    for check_balance in acc_balance:
+        if check_balance["asset"] == "USDT":
+            usdt_balance = check_balance["balance"]
+            print(usdt_balance) # Prints 0.0000
+
+def prueba2():
+    #print(client.futures_account_trades())
+    tradesfu = client.futures_account_trades()
+    for check_symbol in tradesfu:
+        if check_symbol["symbol"] == "UNFI":
+            lastsymbol = check_symbol["symbol"]
+            print(lastsymbol)
+
+def open_orders(): # Cuantas ordenes hay colocadas de short y de long con su respectivo par
+    total_long = 0
+    total_short = 0
+    print(client.futures_get_open_orders())
+    active_orders = client.futures_get_open_orders()
+    for i in active_orders:
+        if i["positionSide"] == "LONG":
+            print(i["positionSide"],  "en:", i["symbol"], "precio:", i["price"])
+            total_long += 1
+    for i in active_orders:
+        if i["positionSide"] == "SHORT":
+            print(i["positionSide"],  "en:", i["symbol"], "precio:", i["price"])
+            total_short += 1    
+    print("Total de ordenes en LONG:", total_long)
+    print("Total de ordenes en SHORT:", total_short)
+
+def total_ordenes(): # Cuantas ordenes hay colocadas de short y de long con su respectivo par
+    _message_ordenes = "*Undefined*"
+    _message_ordenes_long = "*Undefined*"
+    _message_ordenes_short = "*Undefined*"
+    total_long = 0
+    total_short = 0
+    print(client.futures_get_open_orders())
+    active_orders = client.futures_get_open_orders()
+    for i in active_orders:
+        if i["side"] == "BUY":
+            symbol = i["symbol"]
+            price = i["price"]
+            _message_ordenes_long = f"Ordenes LONG: {symbol} - Precio: {price}\n"
+            print(i["side"],  "en:", i["symbol"], "precio:", i["price"])
+            total_long += 1
+    for i in active_orders:
+        if i["side"] == "SELL":
+            symbol = i["symbol"]
+            price = i["price"]
+            _message_ordenes_short = f"Ordenes LONG: {symbol} - Precio: {price}\n"
+            print(i["side"],  "en:", i["symbol"], "precio:", i["price"])
+            total_short += 1    
+    _message_ordenes = f"Resumén de ordenes actuales:\nOrdenes LONG: {total_long} - Ordenes SHORT: {total_short}\n"
+    print("Total de ordenes en LONG:", total_long)
+    print("Total de ordenes en SHORT:", total_short)
+    #_message_ordenes_long = f"Resumén de ordenes actuales:\nOrdenes LONG: {total_long} - Ordenes SHORT: {total_short}\n"
+    return (total_long, total_short, _message_ordenes_long, _message_ordenes_short, _message_ordenes)
+
+def ordenes_de_dia():
+    contar_filled = 0
+    contar_cancelled = 0
+    contar_expired = 0
+
+    #Día actual
+    today = datetime.date.today()
+    #print(today)
+
+    #convertir la fecha a formato numero
+    timeup = (calendar.timegm(today.timetuple()) ) * 1000
+    #print(timeup)
+    
+    print(client.futures_get_all_orders())
+    status_orders = client.futures_get_all_orders()
+    for check_status in status_orders:
+        if check_status["status"] == "FILLED" and check_status["time"] > timeup:
+            contar_filled += 1
+        if check_status["status"] == "CANCELED" and check_status["time"] > timeup:
+            contar_cancelled += 1
+        if check_status["status"] == "EXPIRED" and check_status["time"] > timeup:
+            contar_expired += 1
+    contar_filled = contar_filled / 2
+
+    print(contar_filled / 2)
+    print(contar_cancelled)
+    print(contar_expired)
+
+
+def mirar():
+    starttime = '1 hours ago UTC'
+    sacar = client.get_historical_klines('BTCUSDT', '3m', starttime)
+    print(sacar)
+
+def crear_orden_long():
+    symbol = "BELUSDT"
+    #client.futures_change_margin_type(symbol=symbol, marginType='CROSSED')
+    client.futures_change_leverage(symbol=symbol, leverage=1)
+    buyorder=client.futures_create_order(
+        symbol=symbol,
+        side="BUY",
+        type="LIMIT",
+        quantity=10,
+        price="1.0",
+        timeInForce="GTC"
+        )
+
+def multiplicacion():
+    precio = 1.1278
+    print("Precio entrada LONG")
+    takeprofit = precio + (precio * 0.003)
+    takeprofit = round(takeprofit, 4)
+    print("Take profit: ", + takeprofit)
+
+    stoplost = precio - (precio * 0.05)
+    stoplost = round(stoplost, 4)
+    print("Stop lost: ", + stoplost)
+
+    recompra1 = precio - (precio * 0.015)
+    recompra1 = round(recompra1, 4)
+    print("Recompra 1: ", + recompra1)
+
+    print("Precio entrada SHOR")
+    takeprofit = precio - (precio * 0.003)
+    takeprofit = round(takeprofit, 4)
+    print("Take profit: ", + takeprofit)
+
+    stoplost = precio + (precio * 0.05)
+    stoplost = round(stoplost, 4)
+    print("Stop lost: ", + stoplost)
+
+    recompra1 = precio + (precio * 0.015)
+    recompra1 = round(recompra1, 4)
+    print("Recompra 1: ", + recompra1)
+
+def otro():
+    timeinterval = 5
+    str(timeinterval)
+    print(timeinterval)
+
+def rsi_trade_logic():
+    timeinterval = 3
+    url = "https://fapi.binance.com/fapi/v1/klines?symbol="+symbol+"&interval="+timeinterval+"m&limit=100"
+
+def listas():
+  
+    test_list = [1, 2, 3, 4, 5] 
+    print ("Original list : " + str(test_list)) 
+    test_list = test_list[1:] + test_list[:1] 
+    print ("List after left rotate by 1 : " + str(test_list))
+
+    """
+    #pares = ["BELUSDT", "ROSEUSDT", "JASMYUSDT", "SANDUSDT", "ADAUSDT", "ETHUSDT", "PEOPLEUSDT", "BNBUSDT"]
+    pares = [1, 2, 3, 4, 5] 
+    print ("Original list : " +  str(pares)) 
+    test_list = pares[1:] + pares[:1] 
+    print ("List after left rotate by 1 : " + str(pares))
+    """
+
+    test_list = ["BELUSDT", "ROSEUSDT", "JASMYUSDT", "SANDUSDT", "ADAUSDT", "ETHUSDT", "PEOPLEUSDT", "BNBUSDT"]
+    print ("Original list : " + str(test_list)) 
+    test_list = test_list[1:] + test_list[:1] 
+    print ("List after left rotate by 1 : " + str(test_list))
+
+def ciclo_for():
+    for i in range(0, 4, 1):
+        print(i)
+
+def buscar_orden_recien_ejecutada():
+    orden_long_ID = 1674987355
+    """
+    print(orden_long_ID)
+    print(type(orden_long_ID))
+    orden_long_ID = str(orden_long_ID)
+    print(orden_long_ID)
+    print(type(orden_long_ID))
+    orden_long_ID = int(orden_long_ID)
+    print(orden_long_ID)
+    print(type(orden_long_ID))
+    """
+    #print(client.futures_get_all_orders())
+    status_orders = client.futures_get_all_orders(symbol="ROSEUSDT")
+    for check_status in status_orders:
+        if check_status["orderId"] == orden_long_ID:
+            orden_long_Price = check_status["avgPrice"]
+
+    print(orden_long_Price)
+
+def buscar_orden_recien_ejecutada_long():
+    global orden_long_Price
+    #print(client.futures_get_all_orders())
+    orden_long_ID_use = orden_long_ID
+    status_orders = client.futures_get_all_orders(symbol=symbol)
+    for check_status in status_orders:
+        if check_status["orderId"] == orden_long_ID_use:
+            orden_long_Price = 0
+            orden_long_Price = check_status["avgPrice"]
+    orden_long_Price = float(orden_long_Price)
+
+
+def ciclo():
+    vieja_moneda = "Amir"
+    while True:
+        numeros = ['ROSEUSDT', 'RSRUSDT']
+        symbol = random.choice(numeros)
+        
+        while vieja_moneda == symbol:
+            symbol = random.choice(symbol)
+        print("Moneda nueva: "+symbol)
+        print("Moneda vieja: "+vieja_moneda)
+        sleep(3)
+        vieja_moneda = symbol
+
+
+def ciclo2():
+    vieja_moneda = "Amir"
+    numeros = ['ROSEUSDT', 'RSRUSDT']
+    symbol = random.choice(numeros)
+    
+    while vieja_moneda == symbol:
+        symbol = random.choice(symbol)
+    print("Moneda nueva: "+symbol)
+    print("Moneda vieja: "+vieja_moneda)
+    vieja_moneda = symbol
+    #vieje_moneda = symbol
+
+
+
+def hola():
+    client = Client()
+    info = client.futures_exchange_info()
+
+    requestedFutures = ['ROSEUSDT', 'OGNUSDT', 'RSRUSDT', 'PEOPLEUSDT', 'DYDXUSDT']
+    print(
+        {si['symbol']:si['quantityPrecision'] for si in info['symbols'] if si['symbol'] in requestedFutures}
+    )
+
+    tradingPairs = ['BTCUSDT','ETHUSDT','BNBUSDT']
+
+    #Loop though cryptos
+
+    for i in range(0,len(tradingPairs)):
+        info = client.futures_exchange_info()
+        if info['symbols'][0]['pair'] == tradingPairs[i]:
+            print("Price Pre ",info['symbols'][0]['pricePrecision'])
+            pricePrecision = info['symbols'][0]['pricePrecision']
+            quantityS = 5.2
+            quantityB = "{:0.0{}f}".format(quantityS, pricePrecision)
+
+
+def cancel():
+    active_orders = client.futures_get_open_orders()
+    for orders_futures in active_orders:
+        if orders_futures["status"] == "NEW" and orders_futures["type"] == "STOP_MARKET":
+            order_id = orders_futures["orderId"]
+            order_symbol = orders_futures["symbol"]
+            print(order_id)
+            print(order_symbol)
+            cancel_order = client.futures_cancel_order(symbol = order_symbol, orderId = order_id)
+
+def distanciaBB():
+    percentage_current_upper = -0.0
+    percentage_current_lower = -3.56
+    if percentage_current_upper >= 0:
+        valor_arriba = 0
+    else:
+        valor_arriba = percentage_current_upper
+
+    if percentage_current_lower >= 0:
+        valor_abajo = 0
+    else:
+        valor_abajo = percentage_current_lower
+    
+    distanceBB = (valor_arriba + valor_abajo) * -1
+    print(distanceBB)
+    if distanceBB > 2:
+        print("Ejecutar")
+    else:
+        print("No ejecutar")
+
+def trailling_stop():
+    symbol = "ROSEUSDT"
+    unrealizedprofit = -0.00128
+    roe = -0.1068604402650139
+    unrealizedprofitShow = float(round(unrealizedprofit,2))
+    roeShow = float(round(roe,2))
+    print("PNL: " + str(unrealizedprofitShow) + " USDT")
+    print("ROe: " + str(roeShow) + "%")
+    current_price = float(client.futures_symbol_ticker(symbol=symbol)['price'])
+    print(current_price)
+
+
+
+#account = client.futures_account()
+#print(account)
+
+"""DECIMALES_MONEDA = 4
+decimales = int(DECIMALES_MONEDA)
+print(decimales)
+precio_cierre = 0.2456 / 23
+precio_cierre = float(round(precio_cierre,decimales))
+print(precio_cierre)"""
+
+
+def roundsize():
+    tv_signal_ticker = "ROSEUSDT"
+    get_exchange_info = client.get_exchange_info()
+    exchange_info_symbols = get_exchange_info['symbols']
+    for data_symbols in exchange_info_symbols:
+        if data_symbols['symbol'] == tv_signal_ticker:
+            print(f" ticker is  {data_symbols['symbol']}")
+            data_symbol_filters = data_symbols['filters']
+            for data_filters in data_symbol_filters:
+                if data_filters['filterType'] == "LOT_SIZE":
+                    stepSizeForQuantityTickers = data_filters['stepSize']
+                    print(f" {tv_signal_ticker} and step size is   {stepSizeForQuantityTickers}")
+
+    
+    #quantityWithRoundStep = round_step_size(calculatedBuyQuantity, stepSizeForQuantityTickers) - stepSizeForQuantityTickers
+
+#tick = get_ticksize(cur)
+#price = round_step_size(float(price), float(tick))
+
+# into a pandas DataFrame for neater output 
+"""df = pd.DataFrame(
+    client.futures_order_book(symbol='ROSEUSDT'))
+print(df[['bids', 'asks']].head())
+
+amir = client.futures_order_book(symbol='ROSEUSDT')
+print(amir)"""
+#status_orders = client.futures_get_all_orders(symbol="WAVESUSDT")
+#print(status_orders)
+
+
+#-2.47%, DBBInf -0.51%
+#total_ordenes()
+#ordenes_de_dia()
+#buscar_orden_recien_ejecutada()
+#ciclo2()
+#pen_orders()
+#cancel()
+#distanciaBB()
+#trailling_stop()
+
+
+"""text = (f"🤖 Iniciando el Bot para los pares: pares, en temporalidad de \n💵 Saldo en cuenta de futuros:  dólares.\nRegistrate en Binance: https://bit.ly/ObtenCriptos")
+
+text = str(text.encode('utf-8'))
+print(text).encode('utf-8')"""
+
+
+def order_book():
+    symbol = "GALAUSDT"
+    url = "https://fapi.binance.com/fapi/v1/depth?symbol="+symbol+"&limit="+"50"
+    results = requests.get(url).json()
+    #print(results)
+    #results = client.futures_order_book(symbol = symbol, limit = "50")
+    #print(results)
+
+    df = {side: pd.DataFrame(data=results[side], columns=["price", "quantity"],dtype=float) for side in ["bids", "asks"]}
+    #df = pd.DataFrame(results)
+    #print(frames)
+    #print(df)
+    arriba = df["asks"]
+    arriba = arriba.sort_values(by="quantity", ascending=False)
+    arriba = arriba.head(1)
+    
+    abajo = df["bids"]
+    abajo = abajo.sort_values(by="quantity", ascending=False)
+    abajo = abajo.head(1)
+
+    #print(arriba)
+    #print(abajo)
+
+    block_arriba = arriba.price.max()
+    block_abajo = abajo.price.max()
+
+    #print(block_arriba)
+    #print(block_abajo)
+
+    current_price = float(client.futures_symbol_ticker(symbol=symbol)['price'])
+
+    distance_block_arriba = float(round((block_arriba - current_price) / block_arriba,4) * 100)
+    distance_block_abajo = float(round((current_price - block_abajo) / block_abajo,4) * 100)
+
+    """
+    print(f"Precio       : {current_price}")
+    print(f"Bloque arriba: {block_arriba}")
+    print(f"Bloque abajo : {block_abajo}")
+    print(f"P arriba     : {distance_block_arriba:.2f}")
+    print(f"P abajo      : {distance_block_abajo:.2f}")
+    print("-----------------------------")
+    """
+
+    logger.info(f"Precio: {current_price}, Bloque arriba: {block_arriba}, Bloque abajo: {block_abajo}, P arriba: {distance_block_arriba:.2f}, P abajo: {distance_block_abajo:.2f}")
+
+    return(distance_block_arriba, distance_block_abajo)
+
+while True:
+    order_book()
+
