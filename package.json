@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "esm": "^3.2.25",
-    "website-scraper": "^5.0.0"
-  }
-}
