@@ -1,9 +1,0 @@
-python-binance
-pandas
-numpy
-matplotlib
-autopep8
-telepot
-python-dotenv
---only-binary=:all:
---no-binary=telepot
