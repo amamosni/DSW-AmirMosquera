@@ -34,3 +34,11 @@ body {
     font-size: 0.8em;
     padding: 1em 0 0 0;
 }
+
+#footer {
+    color: #88f;
+    background: #777;
+    text-align: center;
+    padding: 0.5em;
+
+}
